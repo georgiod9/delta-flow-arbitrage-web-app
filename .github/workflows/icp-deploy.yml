@@ -30,7 +30,6 @@ jobs:
             echo "::error::No package.json found in specified path"
             exit 1
           fi
-
           
       - name: Detect Package Manager
         id: detect-package-manager
@@ -69,41 +68,13 @@ jobs:
           
           echo "Modified package.json scripts:"
           cat package.json | grep '"scripts"' -A 10
-
-          # Detect build output directory based on framework
-          if grep -q '"@angular/core"' package.json; then
-            echo "Detected Angular project"
-            BUILD_DIR="dist"
-          elif grep -q '"next"' package.json; then
-            echo "Detected Next.js project"
-            if grep -q '"output": *"export"' next.config.js 2>/dev/null || grep -q '"output": *"export"' package.json; then
-              BUILD_DIR="out"
-            else
-              BUILD_DIR=".next"
-            fi
-          elif grep -q '"nuxt"' package.json; then
-            echo "Detected Nuxt.js project"
-            # Check Nuxt version for different output directories
-            if grep -q '"nuxt3"' package.json || grep -q '"nuxt": *"3' package.json; then
-              BUILD_DIR=".output"
-            else
-              BUILD_DIR=".nuxt"
-              # For Nuxt static builds
-              if grep -q '"generate"' package.json; then
-                BUILD_DIR="dist"
-              fi
-            fi
-          elif grep -q '"react-scripts"' package.json; then
-            echo "Detected Create React App project"
-            BUILD_DIR="build"
-          elif grep -q '"vite"' package.json; then
+          
+          # Detect build tool from package.json
+          if grep -q '"vite"' package.json; then
             echo "Detected Vite project"
             BUILD_DIR="dist"
-          elif grep -q '"gatsby"' package.json; then
-            echo "Detected Gatsby project"
-            BUILD_DIR="public"
-          elif grep -q '"@sveltejs/kit"' package.json; then
-            echo "Detected SvelteKit project"
+          elif grep -q '"react-scripts"' package.json; then
+            echo "Detected Create React App project"
             BUILD_DIR="build"
           else
             echo "Using default build directory"
@@ -161,45 +132,6 @@ jobs:
           
           # Export the build directory for use in later steps
           echo "build_dir=$BUILD_DIR" >> $GITHUB_OUTPUT
-
-      - name: Create .well-known directory
-        working-directory: .
-        run: |
-          echo "Creating .well-known directory and ic-domains file..."
-          # Detect build directory directly
-          if [ -d "dist" ]; then
-            BUILD_DIR="dist"
-          elif [ -d "build" ]; then
-            BUILD_DIR="build"
-          else
-            echo "Error: Neither dist nor build directory found!"
-            ls -la
-            exit 1
-          fi
-
-          # Create .well-known in assets directory
-          mkdir -p "$BUILD_DIR/.well-known"
-          echo "canister1.worldcloud.app" > "$BUILD_DIR/.well-known/ic-domains"
-          
-          echo "Created .well-known/ic-domains with content:"
-          cat "$BUILD_DIR/.well-known/ic-domains"
-          
-          echo "Current working directory:"
-          pwd
-          echo "Directory structure:"
-          ls -la
-          # Create ic-assets.json5 file
-          
-          echo "Created .well-known/ic-domains with content:"
-          cat "$BUILD_DIR/.well-known/ic-domains"
-          
-          
-          echo "Current working directory:"
-          pwd
-          echo "Build directory structure:"
-          ls -la "$BUILD_DIR"
-          echo "Well-known directory:"
-          ls -la "$BUILD_DIR/.well-known"
         
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
